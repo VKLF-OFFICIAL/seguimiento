@@ -1,0 +1,293 @@
+html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progreso de Peso Semanal Comparativo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+        .card { 
+            width: 100%; 
+            max-width: 900px; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+            margin-bottom: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .table-container {
+            margin-top: 40px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            white-space: nowrap;
+        }
+        th, td {
+            padding: 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background-color: #edf2f7;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        /* Styling distinct columns for clarity */
+        .week1-col { background-color: rgba(49, 130, 206, 0.05); }
+        .week2-col { background-color: rgba(72, 187, 120, 0.05); }
+        
+        td.variation {
+            font-weight: bold;
+        }
+        
+        /* Note: For weight loss, negative is usually good (green), positive is bad (red) */
+        .positive { color: #e53e3e; font-weight: bold; } /* Gained weight */
+        .negative { color: #38a169; font-weight: bold; } /* Lost weight */
+        .neutral { color: #718096; }
+        
+        .summary-boxes {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .summary-box {
+            background: #f8fafc;
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            flex: 1;
+            min-width: 200px;
+        }
+        .summary-label {
+            font-size: 0.9em;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+        .summary-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Reporte Comparativo de Peso</h1>
+        <div class="subtitle">Semana Pasada vs. Esta Semana</div>
+        
+        <div class="summary-boxes">
+            <div class="summary-box">
+                <div class="summary-label">Media Semana Pasada</div>
+                <div class="summary-value" id="avg-week1">--</div>
+            </div>
+            <div class="summary-box">
+                <div class="summary-label">Media Esta Semana</div>
+                <div class="summary-value" id="avg-week2">--</div>
+            </div>
+        </div>
+
+        <canvas id="weightChart"></canvas>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="background-color: #e2e8f0;">Día</th>
+                        <th colspan="2" class="week1-col" style="border-right: 2px solid #fff;">Semana Pasada</th>
+                        <th colspan="2" class="week2-col">Esta Semana</th>
+                    </tr>
+                    <tr>
+                        <th class="week1-col">Peso (kg)</th>
+                        <th class="week1-col" style="border-right: 2px solid #fff;">Variación (kg)</th>
+                        <th class="week2-col">Peso (kg)</th>
+                        <th class="week2-col">Variación (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Data sets
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        
+        // Data from previous code
+        const week1Data = [96.8, 95.6, 94.5, 96.0, 96.6, 95.0, 94.5];
+        
+        // New data provided: Lunes 94,1 , Martes 93,4 ,Miercoles 94,4 Jueves 94,4 ,Viernes 94,3 ,Sabado 95,6 ,Domingo 94,9
+        const week2Data = [94.1, 93.4, 94.4, 94.4, 94.3, 95.6, 94.9];
+
+        function calculateVariation(current, previous) {
+            if (previous === null) return { text: '—', class: 'neutral' };
+            const diff = current - previous;
+            const formattedDiff = diff.toFixed(1);
+            if (diff > 0) return { text: '+' + formattedDiff, class: 'positive' };
+            if (diff < 0) return { text: formattedDiff, class: 'negative' };
+            return { text: '0.0', class: 'neutral' };
+        }
+
+        function calculateAverage(arr) {
+            const sum = arr.reduce((a, b) => a + b, 0);
+            return (sum / arr.length).toFixed(2);
+        }
+
+        // Update summary boxes
+        document.getElementById('avg-week1').innerText = calculateAverage(week1Data) + ' kg';
+        document.getElementById('avg-week2').innerText = calculateAverage(week2Data) + ' kg';
+
+        const tbody = document.getElementById('table-body');
+        
+        for (let i = 0; i < days.length; i++) {
+            const tr = document.createElement('tr');
+            
+            // Day cell
+            const tdDay = document.createElement('td');
+            tdDay.innerText = days[i];
+            tdDay.style.fontWeight = 'bold';
+            tr.appendChild(tdDay);
+            
+            // Week 1 cells
+            const tdW1Weight = document.createElement('td');
+            tdW1Weight.innerText = week1Data[i].toFixed(1);
+            tdW1Weight.className = 'week1-col';
+            tr.appendChild(tdW1Weight);
+            
+            const prevW1 = i === 0 ? null : week1Data[i-1];
+            const varW1 = calculateVariation(week1Data[i], prevW1);
+            const tdW1Var = document.createElement('td');
+            tdW1Var.innerText = varW1.text;
+            tdW1Var.className = `variation ${varW1.class} week1-col`;
+            tdW1Var.style.borderRight = '2px solid #fff'; // Match header separator
+            tr.appendChild(tdW1Var);
+
+            // Week 2 cells
+            const tdW2Weight = document.createElement('td');
+            tdW2Weight.innerText = week2Data[i].toFixed(1);
+            tdW2Weight.className = 'week2-col';
+            tr.appendChild(tdW2Weight);
+            
+            // For Monday of Week 2, variation is compared to Sunday of Week 1
+            const prevW2 = i === 0 ? week1Data[6] : week2Data[i-1];
+            const varW2 = calculateVariation(week2Data[i], prevW2);
+            const tdW2Var = document.createElement('td');
+            tdW2Var.innerText = varW2.text;
+            tdW2Var.className = `variation ${varW2.class} week2-col`;
+            tr.appendChild(tdW2Var);
+            
+            tbody.appendChild(tr);
+        }
+
+        const ctx = document.getElementById('weightChart').getContext('2d');
+        
+        // Find min and max for chart scaling
+        const allData = [...week1Data, ...week2Data];
+        const minWeight = Math.floor(Math.min(...allData)) - 1;
+        const maxWeight = Math.ceil(Math.max(...allData)) + 1;
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: days,
+                datasets: [
+                    {
+                        label: 'Semana Pasada',
+                        data: week1Data,
+                        borderColor: '#a0aec0', // Gray for past week
+                        backgroundColor: 'rgba(160, 174, 192, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#718096',
+                        pointRadius: 4,
+                        borderDash: [5, 5], // Dashed line for previous week
+                        fill: false,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Esta Semana',
+                        data: week2Data,
+                        borderColor: '#38a169', // Green for current week (positive connotation for tracking)
+                        backgroundColor: 'rgba(56, 161, 105, 0.15)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2f855a',
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: { 
+                        min: minWeight, 
+                        max: maxWeight,
+                        title: { display: true, text: 'Peso (kg)', font: { size: 14 } }
+                    },
+                    x: {
+                        title: { display: true, text: 'Día de la semana', font: { size: 14 } }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(45, 55, 72, 0.9)',
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 14, weight: 'bold' },
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' kg';
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+
