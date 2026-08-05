@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progreso de Peso Agosto</title>
+    <link rel="icon" href="./imagenes/logoCircularSinfondo.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="./imagenes/logoCircularSinfondo.webp">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .auth-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(circle at top, rgba(255, 255, 255, 0.22), transparent 45%),
+                linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 18px;
+            padding: 32px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.28);
+        }
+        .auth-card h1 {
+            margin: 0 0 8px;
+            color: #111827;
+            font-size: 1.6rem;
+            text-align: left;
+        }
+        .auth-card p {
+            margin: 0 0 18px;
+            color: #4b5563;
+            line-height: 1.5;
+        }
+        .auth-field {
+            margin-bottom: 14px;
+        }
+        .auth-field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .auth-field input {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .auth-field input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .auth-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 18px;
+        }
+        .auth-button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 18px;
+            background: #111827;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .auth-error {
+            min-height: 1.25em;
+            margin-top: 12px;
+            color: #b91c1c;
+            font-size: 0.95rem;
+        }
+        .protected-content {
+            width: 100%;
+            max-width: 900px;
+            display: none;
+        }
+        .protected-content, .card {
+            align-self: stretch;
+        }
+        body.authenticated .protected-content {
+            display: block;
+        }
+        .card {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+        .table-container {
+            margin-top: 40px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            padding: 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background-color: #edf2f7;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        .neutral { color: #718096; font-style: italic; }
+        .variation-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+        .variation-section h2 {
+            margin-top: 0;
+            color: #2d3748;
+            font-size: 1.2rem;
+        }
+        .variation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .variation-card {
+            background: white;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .variation-card .label {
+            display: block;
+            font-size: 0.85rem;
+            color: #718096;
+            margin-bottom: 6px;
+        }
+        .variation-card strong {
+            font-size: 1.3rem;
+            color: #2d3748;
+        }
+        .variation-card p {
+            margin: 6px 0 0;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        .variation-card.negative strong { color: #c53030; }
+        .variation-card.positive strong { color: #2f855a; }
+        .variation-summary {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+        .variation-summary p {
+            margin: 6px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-gate" id="authGate">
+        <form class="auth-card" id="authForm" autocomplete="on">
+            <h1>Acceso restringido</h1>
+            <p>Introduce tus credenciales para ver el reporte de agosto.</p>
+            <div class="auth-field">
+                <label for="authUser">Usuario</label>
+                <input id="authUser" name="username" type="text" autocomplete="username" spellcheck="false" required>
+            </div>
+            <div class="auth-field">
+                <label for="authPass">Contraseña</label>
+                <input id="authPass" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="auth-actions">
+                <button class="auth-button" type="submit">Entrar</button>
+            </div>
+            <div class="auth-error" id="authError" aria-live="polite"></div>
+        </form>
+    </div>
+
+    <div class="protected-content" id="protectedContent" aria-hidden="true">
+        <div class="card">
+            <h1>Reporte Semanal de Peso - Agosto</h1>
+            <canvas id="weightChart"></canvas>
+
+            <div class="variation-section">
+                <h2>Estado de la semana</h2>
+                <div class="variation-grid">
+                    <div class="variation-card positive">
+                        <span class="label">Registros disponibles</span>
+                        <strong>3 de 7</strong>
+                        <p>Lunes, martes y miércoles ya cargados.</p>
+                    </div>
+                    <div class="variation-card">
+                        <span class="label">Semana</span>
+                        <strong>3 - 9 Ago</strong>
+                        <p>Primera semana de agosto.</p>
+                    </div>
+                    <div class="variation-card negative">
+                        <span class="label">Pendientes</span>
+                        <strong>4 días</strong>
+                        <p>Jueves a domingo siguen por definir.</p>
+                    </div>
+                </div>
+                <div class="variation-summary">
+                    <p><strong>Lunes:</strong> 94 kg</p>
+                    <p><strong>Martes:</strong> 93,4 kg</p>
+                    <p><strong>Miércoles:</strong> 93,7 kg</p>
+                    <p><strong>Jueves a domingo:</strong> Por definir</p>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Día</th>
+                            <th>Semana 1 (3 - 9 Ago)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Lunes</strong></td>
+                            <td>94 kg</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Martes</strong></td>
+                            <td>93,4 kg</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Miércoles</strong></td>
+                            <td>93,7 kg</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Jueves</strong></td>
+                            <td class="neutral">Por definir</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Viernes</strong></td>
+                            <td class="neutral">Por definir</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sábado</strong></td>
+                            <td class="neutral">Por definir</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Domingo</strong></td>
+                            <td class="neutral">Por definir</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const AUTH_SESSION_KEY = 'seguimiento-auth-ok';
+        const AUTH_SALT = 'seguimiento-2026-08-01';
+        const AUTH_USER_HASH = '8ca4d585d482b5f42fc7f092448ce6667c958e7a22b6e765d098acf9ee9f3320';
+        const AUTH_PASSWORD_HASH = 'a10e76d06534b231bdd4d76e2df41a51dcb0a22b808de2e1d4d299b54830b418';
+
+        let weightChart = null;
+
+        function toHex(buffer) {
+            return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function sha256Hex(value) {
+            const encoded = new TextEncoder().encode(value);
+            const digest = await crypto.subtle.digest('SHA-256', encoded);
+            return toHex(digest);
+        }
+
+        function createChart() {
+            if (weightChart) {
+                return;
+            }
+
+            const canvas = document.getElementById('weightChart');
+            const ctx = canvas.getContext('2d');
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+                    datasets: [
+                        {
+                            label: 'Semana 1 (3-9 Ago)',
+                            data: [94, 93.4, 93.7, null, null, null, null],
+                            borderColor: '#2b6cb0',
+                            backgroundColor: 'rgba(43, 108, 176, 0.15)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#2b6cb0',
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            fill: true,
+                            spanGaps: false,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            min: 92,
+                            max: 95,
+                            title: { display: true, text: 'Peso (kg)', font: { size: 14 } }
+                        },
+                        x: {
+                            title: { display: true, text: 'Día de la semana', font: { size: 14 } }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(45, 55, 72, 0.9)',
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 14, weight: 'bold' },
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' kg';
+                                }
+                            }
+                        },
+                        legend: {
+                            labels: { font: { size: 13 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showProtectedContent() {
+            document.body.classList.add('authenticated');
+            const protectedContent = document.getElementById('protectedContent');
+            protectedContent.hidden = false;
+            protectedContent.setAttribute('aria-hidden', 'false');
+            document.getElementById('authGate').remove();
+            requestAnimationFrame(() => {
+                createChart();
+            });
+        }
+
+        async function verifyCredentials(username, password) {
+            const userHash = await sha256Hex(`${AUTH_SALT}:${username}`);
+            const passwordHash = await sha256Hex(`${AUTH_SALT}:${password}`);
+            return userHash === AUTH_USER_HASH && passwordHash === AUTH_PASSWORD_HASH;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const authForm = document.getElementById('authForm');
+            const authUser = document.getElementById('authUser');
+            const authPass = document.getElementById('authPass');
+            const authError = document.getElementById('authError');
+
+            if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'granted') {
+                showProtectedContent();
+                return;
+            }
+
+            authForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                authError.textContent = '';
+
+                const username = authUser.value.trim();
+                const password = authPass.value;
+
+                if (!username || !password) {
+                    authError.textContent = 'Completa usuario y contraseña.';
+                    return;
+                }
+
+                const ok = await verifyCredentials(username, password);
+                if (!ok) {
+                    authError.textContent = 'Credenciales incorrectas.';
+                    authPass.value = '';
+                    authPass.focus();
+                    return;
+                }
+
+                sessionStorage.setItem(AUTH_SESSION_KEY, 'granted');
+                showProtectedContent();
+            });
+        });
+    </script>
+</body>
+</html>
